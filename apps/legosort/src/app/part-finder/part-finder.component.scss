@@ -1,0 +1,29 @@
+.games-layout {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 10px auto;
+}
+
+.lego-image-container {
+  overflow: visible;
+}
+
+.legosort-image {
+  width: 55px;
+}
+.legosort-image:hover,
+.legosort-image:focus
+{
+    transition: .2s;
+    transform: scale(2.5);
+    border: black solid 1px;
+}
+
+button.legosort-clear {
+  border: none;
+}

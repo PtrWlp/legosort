@@ -1,0 +1,12 @@
+{
+	"name": "legosort",
+	"version": "1.0.0",
+	"description": "An Angular Seed with Webpack 2, AoT, Lazy Routes, Sass, Karma, Protractor, Codelyzer, Typedocs and Yarn.",
+	"author": "ikke",
+	"license": "MIT",
+	"scripts": {},
+	"dependencies": {
+		"xml2js": "^0.4.23"
+	},
+	"devDependencies": {}
+}
