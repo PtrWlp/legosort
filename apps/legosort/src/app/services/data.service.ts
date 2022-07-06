@@ -5,9 +5,9 @@ import {
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { PartInBox } from '../model/part-in-box';
-import parts from '../../../data/selectedParts.json';
+import partsList from '../../../data/selectedParts.json';
 import { Part } from '../model/part';
-
+import { query, orderBy } from "firebase/firestore";
 @Injectable({
   providedIn: 'root'
 })
@@ -41,6 +41,6 @@ export class DataService {
   }
 
   getAllParts = (): Part[] => {
-    return parts;
+    return partsList;
   }
 }

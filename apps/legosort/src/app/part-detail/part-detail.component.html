@@ -1,0 +1,30 @@
+<h1 mat-dialog-title>
+  {{ part.partnumber }} {{ part.category }} {{ part.name }}
+</h1>
+<div mat-dialog-content>
+  <img
+    mat-card-image
+    class="legosort-detail-image"
+    src="assets/parts/{{ part.image }}"
+    alt="{{ part.partnumber }}"
+    onerror="this.onerror=null;this.src='assets/no-image-icon.png';"
+    loading="lazy"
+  />
+  <p>{{ part.dimensions }}</p>
+  <a href="https://www.bricklink.com/v2/catalog/catalogitem.page?P={{ part.partnumber }}#T=C" target="_blank">bricklink</a>
+
+  <form [formGroup]="boxForm">
+    <mat-form-field appearance="outline">
+      <input
+        cdkFocusInitial
+        formControlName="box"
+        placeholder="Box"
+        matInput
+      />
+    </mat-form-field>
+  </form>
+</div>
+<div mat-dialog-actions>
+  <button mat-button (click)="onNoClick()">Cancel</button>
+  <button mat-button (click)="onSave()">Save</button>
+</div>

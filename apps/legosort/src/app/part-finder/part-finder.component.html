@@ -1,5 +1,7 @@
 <div class="container">
-  <h1>Which box contains my lego part</h1>
+  <mat-toolbar>
+    <h1>Which box contains my lego part</h1>
+  </mat-toolbar>
 
   <mat-form-field appearance="fill" *ngFor="let partFilter of partFilters">
     <mat-label>{{ partFilter.name }}</mat-label>
@@ -30,7 +32,6 @@
       #input
     />
   </mat-form-field>
-  <mat-checkbox (change)="handleFilterCheckbox($event)" >Only in box?</mat-checkbox>
   <br />
 
   <mat-table class="mat-elevation-z8" [dataSource]="dataSourceFilters">
@@ -44,7 +45,7 @@
           alt="{{ part.partnumber }}"
           onerror="this.onerror=null;this.src='assets/no-image-icon.png';"
           loading="lazy"
-        /> &nbsp; {{ part.partnumber }}
+        /> &nbsp; <a (click)="openPartDetailDialog(part)">{{ part.partnumber }}</a>
       </mat-cell>
     </ng-container>
 

@@ -8,5 +8,6 @@ export interface Part {
   category: string,
   isSubPart: boolean,
   dimensions: string,
-  box?: string | unknown,
+  boxId?: string,
+  box?: string,
 }

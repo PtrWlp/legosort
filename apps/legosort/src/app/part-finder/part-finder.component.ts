@@ -7,8 +7,9 @@ import { Part } from '../model/part';
 import { DataService } from '../services/data.service';
 import { PartInBox } from '../model/part-in-box';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-import { MatCheckboxChange } from '@angular/material/checkbox';
+import { takeUntil, map } from 'rxjs/operators';
+import { MatDialog } from '@angular/material/dialog';
+import { PartDetailComponent } from '../part-detail/part-detail.component';
 
 @Component({
   selector: 'legosort-part-finder',
@@ -16,8 +17,11 @@ import { MatCheckboxChange } from '@angular/material/checkbox';
   styleUrls: ['./part-finder.component.scss'],
 })
 export class PartFinderComponent implements OnInit, OnDestroy {
+  defaultValue = 'All';
+  filterDictionary = new Map<string, string>();
+
   dim: string[] = [
-    'All',
+    this.defaultValue,
     '1',
     '2',
     '3',
@@ -31,7 +35,7 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     '10+',
   ];
   heights: string[] = [
-    'All',
+    this.defaultValue,
     '0',
     '0-1',
     '1',
@@ -42,7 +46,7 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     '6+',
   ];
   categories: string[] = [
-    'All',
+    this.defaultValue,
     'Antenna',
     'Arch',
     'Ball',
@@ -88,10 +92,6 @@ export class PartFinderComponent implements OnInit, OnDestroy {
   ];
   partFilters: PartFilter[] = [];
 
-  defaultValue = 'All';
-
-  filterDictionary = new Map<string, string>();
-
   public dataSourceFilters!: MatTableDataSource<Part>;
   public displayedColumns: string[] = [
     'image',
@@ -101,46 +101,85 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     'box',
   ];
 
-  constructor(private dataService: DataService) {}
+  constructor(private dataService: DataService, private dialog: MatDialog) {}
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
     this.dataService
       .getAllPartInBox()
       .pipe(takeUntil(this.destroy$))
-      .subscribe((AllPartInBox: PartInBox[]) => {
-        console.log(AllPartInBox);
-        this.dataSourceFilters = new MatTableDataSource(
-          this.getAllPartsWithBoxNumber(AllPartInBox)
-        );
-        this.dataSourceFilters.filterPredicate = this.createFilter();
+      .subscribe((allPartInBox: PartInBox[]) => {
+        this.fillTable(allPartInBox);
+        this.addOrUpdateFilters(allPartInBox);
+        // Fire the filters initially, so initially no parts will be displayed
+        this.applyPartFilter('category', this.defaultValue);
       });
-
-    this.partFilters.push({
-      name: 'category',
-      options: this.categories,
-      defaultValue: this.defaultValue,
-    });
-    this.partFilters.push({
-      name: 'dim1',
-      options: this.dim,
-      defaultValue: this.defaultValue,
-    });
-    this.partFilters.push({
-      name: 'dim2',
-      options: this.dim,
-      defaultValue: this.defaultValue,
-    });
-    this.partFilters.push({
-      name: 'height',
-      options: this.heights,
-      defaultValue: this.defaultValue,
-    });
   }
 
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private fillTable(allPartInBox: PartInBox[]): void {
+    this.dataSourceFilters = new MatTableDataSource(
+      this.getAllPartsWithBoxNumber(allPartInBox)
+    );
+
+    this.dataSourceFilters.filterPredicate = this.createFilter();
+  }
+
+  private addOrUpdateFilters(allPartInBox: PartInBox[]): void {
+    if (!this.partfiltersHasFilter(this.partFilters, 'category')) {
+      this.partFilters.push({
+        name: 'category',
+        options: this.categories,
+        defaultValue: this.defaultValue,
+      });
+    }
+    if (!this.partfiltersHasFilter(this.partFilters, 'dim1')) {
+      this.partFilters.push({
+        name: 'dim1',
+        options: this.dim,
+        defaultValue: this.defaultValue,
+      });
+    }
+    if (!this.partfiltersHasFilter(this.partFilters, 'dim2')) {
+      this.partFilters.push({
+        name: 'dim2',
+        options: this.dim,
+        defaultValue: this.defaultValue,
+      });
+    }
+    if (!this.partfiltersHasFilter(this.partFilters, 'height')) {
+      this.partFilters.push({
+        name: 'height',
+        options: this.heights,
+        defaultValue: this.defaultValue,
+      });
+    }
+
+    if (!this.partfiltersHasFilter(this.partFilters, 'box')) {
+      this.partFilters.push({
+        name: 'box',
+        options: this.getListOfBoxes(allPartInBox),
+        defaultValue: this.defaultValue,
+      });
+    } else {
+      // Something special with box: The values depend on the incoming data,
+      // so filter needs to be updated. But the chosen defaultvalue needs to be retained
+      const boxFilter = this.partFilters.find(
+        (part) => part.name === 'box'
+      ) as PartFilter;
+      boxFilter['options'] = this.getListOfBoxes(allPartInBox);
+    }
+  }
+
+  private partfiltersHasFilter(
+    partFilters: PartFilter[],
+    name: string
+  ): boolean {
+    return partFilters.some((part) => part.name === name);
   }
 
   private createFilter(): (part: Part, filters: string) => boolean {
@@ -166,11 +205,27 @@ export class PartFinderComponent implements OnInit, OnDestroy {
         mappedFilters.get('height') !== 'All'
           ? (mappedFilters.get('height') as string)
           : undefined;
-      const onlyInBoxFilterValue =
-        mappedFilters.get('box') || (undefined as string | unknown);
+      const boxFilterValue =
+        mappedFilters.get('box') !== 'All'
+          ? (mappedFilters.get('box') as string)
+          : undefined;
 
       const nameValue = part['name'].toString().toLowerCase();
       const categoryValue = part['category'].toString().toLowerCase();
+
+      // if no filter was specified by the user, show nothing
+      if (
+        !(
+          nameFilterValue?.length > 2 ||
+          categoryFilterValue ||
+          dim1FilterValue ||
+          dim2FilterValue ||
+          heightFilterValue ||
+          boxFilterValue
+        )
+      ) {
+        isMatch = false;
+      }
 
       // Apply filters until the part does no longer pass one of the filters
       if (isMatch && nameFilterValue && nameFilterValue.length > 2) {
@@ -234,11 +289,15 @@ export class PartFinderComponent implements OnInit, OnDestroy {
         }
       }
 
-      if (isMatch && onlyInBoxFilterValue != undefined) {
-        if (onlyInBoxFilterValue === 'true') {
-          const cellBoxValue = part['box'] || '';
-          // Eventually filter for box
+      if (isMatch && boxFilterValue) {
+        const cellBoxValue = part['box'] || '';
+        if (boxFilterValue === 'any box') {
           isMatch = cellBoxValue !== '';
+        } else if (boxFilterValue === 'not in box') {
+          isMatch = cellBoxValue === '';
+        } else {
+          // Eventually filter for box value
+          isMatch = cellBoxValue === boxFilterValue;
         }
       }
 
@@ -248,14 +307,35 @@ export class PartFinderComponent implements OnInit, OnDestroy {
 
   getAllPartsWithBoxNumber(allPartInBox: PartInBox[]): Part[] {
     const availableParts = this.dataService.getAllParts();
-    return availableParts.map((availablePart) => {
+    const allPartsWithBoxNumber =  availableParts.map((availablePart) => {
+      const partInBox = allPartInBox.find(
+        (partInBox) => availablePart.partnumber === partInBox.partnumber
+      );
       return {
         ...availablePart,
-        box: allPartInBox.find(
-          (partInBox) => availablePart.partnumber === partInBox.partnumber
-        )?.box,
+        boxId: partInBox?.id,
+        box: partInBox?.box,
       };
     });
+    return allPartsWithBoxNumber.sort(this.partSort);
+  }
+
+  private partSort(partA: Part, partB: Part): number {
+    if (partA.box === partB.box) {
+      // partnumber is only important when boxes are equal
+      return partA.partnumber > partB.partnumber ? 1 : -1;
+    }
+    // undefined goes last in the sort
+    // First compare number-wise TODO
+    return (partA.box || 'zzz') > (partB.box || 'zzz') ? 1 : -1;
+  }
+  getListOfBoxes(allPartInBox: PartInBox[]): string[] {
+    return [
+      this.defaultValue,
+      'any box',
+      'not in box',
+      ...new Set(allPartInBox.map((data) => data.box)),
+    ];
   }
 
   handleFilterDropdown(ob: MatSelectChange, partFilter: PartFilter): void {
@@ -267,10 +347,6 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     this.applyPartFilter('name', filterValue.trim().toLowerCase());
   }
 
-  handleFilterCheckbox(event: MatCheckboxChange): void {
-    this.applyPartFilter('box', `${event.checked}`);
-  }
-
   applyPartFilter(name: string, value: string) {
     this.filterDictionary.set(name, value);
 
@@ -279,7 +355,6 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     );
 
     this.dataSourceFilters.filter = jsonString;
-    //console.log(this.filterValues);
   }
 
   onClear(
@@ -289,5 +364,22 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     partFilter.defaultValue = this.defaultValue;
     this.applyPartFilter(partFilter.name, this.defaultValue);
     event.stopPropagation();
+  }
+
+  openPartDetailDialog(part: Part): void {
+    const dialogRef = this.dialog.open(PartDetailComponent, {
+      width: '400px',
+      data: part,
+    });
+
+    dialogRef
+      .afterClosed()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((result: Part) => {
+        // Somehow keep the filters
+        // eslint-disable-next-line no-self-assign
+        this.dataSourceFilters.filter = this.dataSourceFilters.filter;
+        console.log('done', result);
+      });
   }
 }
