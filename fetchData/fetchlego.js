@@ -27,32 +27,37 @@ function toFractals(value) {
   if (segments.length === 1) {
     return value;
   }
-  if (segments[1] === '13') {
+  const integerPart = segments[0] !== '0' ? `${segments[0]} ` : '';
+  const fraction = segments[1];
+  if (fraction === '13') {
     return `${segments[0]} 1/8`;
   }
-  if (segments[1] === '33') {
-    return `${segments[0]} 1/3`;
+  if (fraction === '33') {
+    return `${integerPart}1/3`;
   }
-  if (segments[1] === '3') {
-    return `${segments[0]} 1/3`;
+  if (fraction === '3') {
+    return `${integerPart}1/3`;
   }
-  if (segments[1] === '25') {
-    return `${segments[0]} 1/4`;
+  if (fraction === '25') {
+    return `${integerPart}1/4`;
   }
-  if (segments[1] === '5') {
-    return `${segments[0]} 1/2`;
+  if (fraction === '5') {
+    return `${integerPart}1/2`;
   }
-  if (segments[1] === '75') {
-    return `${segments[0]} 3/4`;
+  if (fraction === '75') {
+    return `${integerPart}3/4`;
   }
-  if (segments[1] === '67') {
-    return `${segments[0]} 2/3`;
+  if (fraction === '66' || fraction === '67') {
+    return `${integerPart}2/3`;
   }
-  if (segments[1] === '63') {
-    return `${segments[0]} 5/8`;
+  if (fraction === '63') {
+    return `${integerPart}5/8`;
   }
-  if (segments[1] === '38') {
-    return `${segments[0]} 3/8`;
+  if (fraction === '38') {
+    return `${integerPart}3/8`;
+  }
+  if (fraction === '83') {
+    return `${integerPart}6/6`;
   }
   return value;
 }

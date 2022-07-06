@@ -21,17 +21,17 @@ export class DataService {
   }
 
   updatePartInBox(partInBox: PartInBox) {
-    const dbRef = doc(this.firestore, 'partinbox');
-    return updateDoc(dbRef, partInBox);
+    const dbRef = doc(this.firestore, `partinbox/${partInBox.id}`);
+    return setDoc(dbRef, partInBox);
   }
 
   deletePartInBox(partInBox: PartInBox) {
-    const dbRef = doc(this.firestore, `partinbox/${partInBox.partnumber}`);
+    const dbRef = doc(this.firestore, `partinbox/${partInBox.id}`);
     return deleteDoc(dbRef);
   }
 
   modifyBox(partInBox: PartInBox, box: string) {
-    const dbRef = doc(this.firestore, `partinbox/${partInBox.partnumber}`);
+    const dbRef = doc(this.firestore, `partinbox/${partInBox.id}`);
     return updateDoc(dbRef, { box });
   }
 

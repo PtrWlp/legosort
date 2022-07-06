@@ -37,7 +37,6 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     '1',
     '1-2',
     '2',
-    '2-3',
     '3',
     '3-6',
     '6+',
@@ -106,7 +105,6 @@ export class PartFinderComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
-
     this.dataService
       .getAllPartInBox()
       .pipe(takeUntil(this.destroy$))
@@ -115,79 +113,7 @@ export class PartFinderComponent implements OnInit, OnDestroy {
         this.dataSourceFilters = new MatTableDataSource(
           this.getAllPartsWithBoxNumber(AllPartInBox)
         );
-        this.dataSourceFilters.filterPredicate = function (record, filters) {
-          const mappedFilters = new Map(JSON.parse(filters));
-          let isMatch = true;
-
-          const nameFilterValue = mappedFilters.get('name') as string;
-          const categoryFilterValue = mappedFilters.get('category') as string;
-          const dim1FilterValue = mappedFilters.get('dim1') as string;
-          const dim2FilterValue = mappedFilters.get('dim2') as string;
-          const heightFilterValue = mappedFilters.get('height') as string;
-          const onlyInBoxFilterValue = mappedFilters.get('box') || undefined as string | unknown;
-
-          const nameValue = record['name'].toString().toLowerCase();
-          const categoryValue = record['category'].toString().toLowerCase();
-
-          // Apply filters until the record does no longer pass one of the filters
-          if (isMatch && nameFilterValue && nameFilterValue.length > 2) {
-            // Only filter on free text if more than 2 characters are filled.
-            // Match on name or partnumber ( id )
-            isMatch =
-              nameValue.includes(nameFilterValue.toLowerCase()) ||
-              categoryValue.includes(nameFilterValue.toLowerCase()) ||
-              record['partnumber'] == nameFilterValue;
-          }
-
-          if (isMatch && categoryFilterValue && categoryFilterValue !== 'All') {
-            isMatch = categoryValue.includes(categoryFilterValue.toLowerCase());
-          }
-
-          if (isMatch && dim1FilterValue && dim1FilterValue !== 'All') {
-            if (dim1FilterValue === '10+') {
-              isMatch = parseFloat(record['dim1']) > 10;
-            } else {
-              isMatch = record['dim1'].toString() === dim1FilterValue;
-            }
-          }
-
-          if (isMatch && dim2FilterValue && dim2FilterValue !== 'All') {
-            if (dim2FilterValue === '10+') {
-              isMatch = parseFloat(record['dim2']) > 10;
-            } else {
-              isMatch = record['dim2'].toString().toLowerCase() === dim2FilterValue;
-            }
-          }
-
-          if (isMatch && heightFilterValue && heightFilterValue !== 'All') {
-            const cellValueNum: number =
-              record['height'] === '' ? 0 : parseFloat(record['height']);
-            // Filter on upper and lower
-            if (['1', '2', '3'].includes(heightFilterValue)) {
-              isMatch = cellValueNum === parseFloat(heightFilterValue);
-            } else if (heightFilterValue === '0-1') {
-              isMatch = cellValueNum > 0 && cellValueNum < 1;
-            } else if (heightFilterValue === '1-2') {
-              isMatch = cellValueNum > 1 && cellValueNum < 2;
-            } else if (heightFilterValue === '2-3') {
-              isMatch = cellValueNum > 2 && cellValueNum < 3;
-            } else if (heightFilterValue === '3-6') {
-              isMatch = cellValueNum > 3 && cellValueNum < 6;
-            } else if (heightFilterValue === '6+') {
-              isMatch = cellValueNum > 6;
-            }
-          }
-
-          if (isMatch && (onlyInBoxFilterValue != undefined)) {
-            if (onlyInBoxFilterValue === 'true') {
-              const cellBoxValue = record['box'] || '';
-              // Eventually filter for box
-              isMatch = cellBoxValue !== '';
-            }
-          }
-
-          return isMatch;
-        };
+        this.dataSourceFilters.filterPredicate = this.createFilter();
       });
 
     this.partFilters.push({
@@ -215,6 +141,109 @@ export class PartFinderComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private createFilter(): (part: Part, filters: string) => boolean {
+    // We return a function for the MatTableDataSource to call for each item in the source
+    return function (part: Part, filters: string): boolean {
+      const mappedFilters = new Map(JSON.parse(filters));
+      let isMatch = true;
+
+      const nameFilterValue = mappedFilters.get('name') as string;
+      const categoryFilterValue =
+        mappedFilters.get('category') !== 'All'
+          ? (mappedFilters.get('category') as string)
+          : undefined;
+      const dim1FilterValue =
+        mappedFilters.get('dim1') !== 'All'
+          ? (mappedFilters.get('dim1') as string)
+          : undefined;
+      const dim2FilterValue =
+        mappedFilters.get('dim2') !== 'All'
+          ? (mappedFilters.get('dim2') as string)
+          : undefined;
+      const heightFilterValue =
+        mappedFilters.get('height') !== 'All'
+          ? (mappedFilters.get('height') as string)
+          : undefined;
+      const onlyInBoxFilterValue =
+        mappedFilters.get('box') || (undefined as string | unknown);
+
+      const nameValue = part['name'].toString().toLowerCase();
+      const categoryValue = part['category'].toString().toLowerCase();
+
+      // Apply filters until the part does no longer pass one of the filters
+      if (isMatch && nameFilterValue && nameFilterValue.length > 2) {
+        // Only filter on free text if more than 2 characters are filled.
+        // Match on name or partnumber ( id )
+        isMatch =
+          nameValue.includes(nameFilterValue.toLowerCase()) ||
+          categoryValue.includes(nameFilterValue.toLowerCase()) ||
+          part['partnumber'] == nameFilterValue;
+      }
+
+      if (isMatch && categoryFilterValue) {
+        isMatch = categoryValue.includes(categoryFilterValue.toLowerCase());
+      }
+
+      if (isMatch && dim1FilterValue) {
+        if (dim1FilterValue === '10+') {
+          isMatch = parseFloat(part['dim1']) > 10;
+          // dim1 and dim2 should be interchangeable
+          if (!isMatch) {
+            isMatch = parseFloat(part['dim2']) > 10;
+          }
+        } else {
+          isMatch = part['dim1'].toString() === dim1FilterValue;
+          if (!isMatch) {
+            isMatch = part['dim2'].toString() === dim1FilterValue;
+          }
+        }
+      }
+
+      if (isMatch && dim2FilterValue) {
+        if (dim2FilterValue === '10+') {
+          isMatch = parseFloat(part['dim2']) > 10;
+          if (!isMatch) {
+            isMatch = parseFloat(part['dim1']) > 10;
+          }
+        } else {
+          isMatch = part['dim2'].toString().toLowerCase() === dim2FilterValue;
+          if (!isMatch) {
+            isMatch = part['dim1'].toString() === dim2FilterValue;
+          }
+        }
+      }
+
+      if (isMatch && heightFilterValue) {
+        const cellValueNum: number =
+          part['height'] === '' ? 0 : parseFloat(part['height']);
+        // Filter on upper and lower
+        if (['1', '2', '3'].includes(heightFilterValue)) {
+          isMatch = cellValueNum === parseFloat(heightFilterValue);
+        } else if (heightFilterValue === '0-1') {
+          isMatch = cellValueNum > 0 && cellValueNum < 1;
+        } else if (heightFilterValue === '1-2') {
+          isMatch = cellValueNum > 1 && cellValueNum < 2;
+        } else if (heightFilterValue === '2-3') {
+          isMatch = cellValueNum > 2 && cellValueNum < 3;
+        } else if (heightFilterValue === '3-6') {
+          isMatch = cellValueNum > 3 && cellValueNum < 6;
+        } else if (heightFilterValue === '6+') {
+          isMatch = cellValueNum > 6;
+        }
+      }
+
+      if (isMatch && onlyInBoxFilterValue != undefined) {
+        if (onlyInBoxFilterValue === 'true') {
+          const cellBoxValue = part['box'] || '';
+          // Eventually filter for box
+          isMatch = cellBoxValue !== '';
+        }
+      }
+
+      return isMatch;
+    };
   }
 
   getAllPartsWithBoxNumber(allPartInBox: PartInBox[]): Part[] {
