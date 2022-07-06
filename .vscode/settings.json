@@ -4,6 +4,7 @@
     "firestore",
     "legosort",
     "partfilter",
+    "partfilters",
     "partinbox",
     "partnumber"
   ]
