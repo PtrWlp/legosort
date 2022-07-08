@@ -1,15 +1,16 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
-import { PartFilter } from '../model/partfilter';
+import { BoxWithParts, PartFilter } from '../model/types';
 import { MatSelectChange } from '@angular/material/select';
 
-import { Part } from '../model/part';
+import { Part, PartInBox } from '../model/types';
 import { DataService } from '../services/data.service';
-import { PartInBox } from '../model/part-in-box';
 import { Subject } from 'rxjs';
-import { takeUntil, map } from 'rxjs/operators';
+import { takeUntil } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { PartDetailComponent } from '../part-detail/part-detail.component';
+import { createFilter } from './part-finder.helpers';
+import { ActivatedRoute } from '@angular/router';
 
 @Component({
   selector: 'legosort-part-finder',
@@ -101,7 +102,17 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     'box',
   ];
 
-  constructor(private dataService: DataService, private dialog: MatDialog) {}
+  public boxView = false; // Will be set in html template by slider
+  public seeSpecificBox: string;
+  public boxWithParts: BoxWithParts[] = [];
+
+  constructor(
+    private routeParams: ActivatedRoute,
+    private dataService: DataService,
+    private dialog: MatDialog
+  ) {
+    this.seeSpecificBox = routeParams.snapshot.params['box'];
+  }
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
@@ -122,11 +133,16 @@ export class PartFinderComponent implements OnInit, OnDestroy {
   }
 
   private fillTable(allPartInBox: PartInBox[]): void {
-    this.dataSourceFilters = new MatTableDataSource(
-      this.getAllPartsWithBoxNumber(allPartInBox)
-    );
+    const AllPartsWithBoxNumber = this.getAllPartsWithBoxNumber(allPartInBox);
+    this.dataSourceFilters = new MatTableDataSource(AllPartsWithBoxNumber);
+    // Magic happens. The helper contains a big function that decides if a part is a match or not.
+    this.dataSourceFilters.filterPredicate = createFilter;
 
-    this.dataSourceFilters.filterPredicate = this.createFilter();
+    this.boxWithParts = this.getBoxesWithParts(AllPartsWithBoxNumber);
+    if (this.seeSpecificBox) {
+      this.boxView = true;
+      this.boxWithParts = this.boxWithParts.filter((box) => box.box === this.seeSpecificBox);
+    }
   }
 
   private addOrUpdateFilters(allPartInBox: PartInBox[]): void {
@@ -182,132 +198,9 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     return partFilters.some((part) => part.name === name);
   }
 
-  private createFilter(): (part: Part, filters: string) => boolean {
-    // We return a function for the MatTableDataSource to call for each item in the source
-    return function (part: Part, filters: string): boolean {
-      const mappedFilters = new Map(JSON.parse(filters));
-      let isMatch = true;
-
-      const nameFilterValue = mappedFilters.get('name') as string;
-      const categoryFilterValue =
-        mappedFilters.get('category') !== 'All'
-          ? (mappedFilters.get('category') as string)
-          : undefined;
-      const dim1FilterValue =
-        mappedFilters.get('dim1') !== 'All'
-          ? (mappedFilters.get('dim1') as string)
-          : undefined;
-      const dim2FilterValue =
-        mappedFilters.get('dim2') !== 'All'
-          ? (mappedFilters.get('dim2') as string)
-          : undefined;
-      const heightFilterValue =
-        mappedFilters.get('height') !== 'All'
-          ? (mappedFilters.get('height') as string)
-          : undefined;
-      const boxFilterValue =
-        mappedFilters.get('box') !== 'All'
-          ? (mappedFilters.get('box') as string)
-          : undefined;
-
-      const nameValue = part['name'].toString().toLowerCase();
-      const categoryValue = part['category'].toString().toLowerCase();
-
-      // if no filter was specified by the user, show nothing
-      if (
-        !(
-          nameFilterValue?.length > 2 ||
-          categoryFilterValue ||
-          dim1FilterValue ||
-          dim2FilterValue ||
-          heightFilterValue ||
-          boxFilterValue
-        )
-      ) {
-        isMatch = false;
-      }
-
-      // Apply filters until the part does no longer pass one of the filters
-      if (isMatch && nameFilterValue && nameFilterValue.length > 2) {
-        // Only filter on free text if more than 2 characters are filled.
-        // Match on name or partnumber ( id )
-        isMatch =
-          nameValue.includes(nameFilterValue.toLowerCase()) ||
-          categoryValue.includes(nameFilterValue.toLowerCase()) ||
-          part['partnumber'] == nameFilterValue;
-      }
-
-      if (isMatch && categoryFilterValue) {
-        isMatch = categoryValue.includes(categoryFilterValue.toLowerCase());
-      }
-
-      if (isMatch && dim1FilterValue) {
-        if (dim1FilterValue === '10+') {
-          isMatch = parseFloat(part['dim1']) > 10;
-          // dim1 and dim2 should be interchangeable
-          if (!isMatch) {
-            isMatch = parseFloat(part['dim2']) > 10;
-          }
-        } else {
-          isMatch = part['dim1'].toString() === dim1FilterValue;
-          if (!isMatch) {
-            isMatch = part['dim2'].toString() === dim1FilterValue;
-          }
-        }
-      }
-
-      if (isMatch && dim2FilterValue) {
-        if (dim2FilterValue === '10+') {
-          isMatch = parseFloat(part['dim2']) > 10;
-          if (!isMatch) {
-            isMatch = parseFloat(part['dim1']) > 10;
-          }
-        } else {
-          isMatch = part['dim2'].toString().toLowerCase() === dim2FilterValue;
-          if (!isMatch) {
-            isMatch = part['dim1'].toString() === dim2FilterValue;
-          }
-        }
-      }
-
-      if (isMatch && heightFilterValue) {
-        const cellValueNum: number =
-          part['height'] === '' ? 0 : parseFloat(part['height']);
-        // Filter on upper and lower
-        if (['1', '2', '3'].includes(heightFilterValue)) {
-          isMatch = cellValueNum === parseFloat(heightFilterValue);
-        } else if (heightFilterValue === '0-1') {
-          isMatch = cellValueNum > 0 && cellValueNum < 1;
-        } else if (heightFilterValue === '1-2') {
-          isMatch = cellValueNum > 1 && cellValueNum < 2;
-        } else if (heightFilterValue === '2-3') {
-          isMatch = cellValueNum > 2 && cellValueNum < 3;
-        } else if (heightFilterValue === '3-6') {
-          isMatch = cellValueNum > 3 && cellValueNum < 6;
-        } else if (heightFilterValue === '6+') {
-          isMatch = cellValueNum > 6;
-        }
-      }
-
-      if (isMatch && boxFilterValue) {
-        const cellBoxValue = part['box'] || '';
-        if (boxFilterValue === 'any box') {
-          isMatch = cellBoxValue !== '';
-        } else if (boxFilterValue === 'not in box') {
-          isMatch = cellBoxValue === '';
-        } else {
-          // Eventually filter for box value
-          isMatch = cellBoxValue === boxFilterValue;
-        }
-      }
-
-      return isMatch;
-    };
-  }
-
   getAllPartsWithBoxNumber(allPartInBox: PartInBox[]): Part[] {
     const availableParts = this.dataService.getAllParts();
-    const allPartsWithBoxNumber =  availableParts.map((availablePart) => {
+    const allPartsWithBoxNumber = availableParts.map((availablePart) => {
       const partInBox = allPartInBox.find(
         (partInBox) => availablePart.partnumber === partInBox.partnumber
       );
@@ -329,6 +222,29 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     const boxA = partA.box || 'zzz';
     const boxB = partB.box || 'zzz';
     return boxA.localeCompare(boxB, 'en', { numeric: true });
+  }
+
+  getBoxesWithParts(allPartsWithBoxNumber: Part[]): BoxWithParts[] {
+        // We need to normalize: An array of boxes,
+    //  and then an array of items in that box
+    const allBoxesWithParts: BoxWithParts[] = [];
+    allPartsWithBoxNumber
+      .sort(this.partSort)
+      .forEach((part) => {
+        // Only the parts assigned to actual boxes
+        if (part.box) {
+
+          let specificBox = allBoxesWithParts.find(boxWithPart => boxWithPart.box === part.box);
+
+          if (!specificBox) {
+            specificBox = { box: part.box, parts: []} as BoxWithParts;
+            allBoxesWithParts.push(specificBox);
+          }
+          specificBox.parts.push(part);
+        }
+    })
+
+    return allBoxesWithParts;
   }
 
   getListOfBoxes(allPartInBox: PartInBox[]): string[] {

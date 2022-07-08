@@ -1,0 +1,63 @@
+body, div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, code, form, fieldset, legend, p, blockquote, th, td, input, textarea {
+    margin: 0;
+    padding: 0;
+}
+body {
+  font-size: 16px;
+  font-family: 'lucida grande',Arial,tahoma,verdana,arial,sans-serif;
+  color: #333;
+}
+a {
+  color: #3897c7;
+}
+h1 {
+  font-size: 50px;
+  font-weight: bold;
+  margin: 0;
+  color: #333;
+}
+h2 {
+  font-size: 20px;
+  margin: 0 0 27px 0;;
+  color: #333;
+}
+
+#pwTopBar {
+  background-color: #3b5998;
+  border-bottom: 1px solid #133783;
+  padding: 12px;
+}
+
+#pwTopBar h1{
+  max-width: 600px;
+  margin: auto;
+  color: white;
+  font-size: 20px;
+  font-family: 'lucida grande',Arial,tahoma,verdana,arial,sans-serif;
+}
+
+#pwPages {
+  overflow: auto;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  padding-top: 10px;
+
+}
+#pwPages p {
+  max-width: 600px;
+  margin: 30px auto auto;
+  line-height: 1.5;
+}
+
+#pwList {
+  max-width: 600px;
+  margin: 30px auto auto;
+  line-height: 1.5;
+}
+
+#pwFooter {
+  max-width: 600px;
+  margin: 30px auto auto;
+  color: gray;
+  font-size: smaller;
+}

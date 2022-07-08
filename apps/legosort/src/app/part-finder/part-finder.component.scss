@@ -3,6 +3,17 @@
   margin: 10px auto;
 }
 
+.head-container {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  // & h1 {
+  // }
+  // & mat-slide-toggle {
+  // }
+}
+
 .lego-image-container {
   overflow: visible;
 }

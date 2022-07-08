@@ -1,43 +1,101 @@
 <div class="container">
   <mat-toolbar>
-    <h1>Which box contains my lego part</h1>
+    <div class="head-container">
+      <h1>Which box contains my lego part?</h1>
+      <mat-slide-toggle (change)="boxView = $event.checked"
+        >Box-View</mat-slide-toggle
+      >
+    </div>
   </mat-toolbar>
 
-  <mat-form-field appearance="fill" *ngFor="let partFilter of partFilters">
-    <mat-label>{{ partFilter.name }}</mat-label>
-    <mat-select
-      [(value)]="partFilter.defaultValue"
-      (selectionChange)="handleFilterDropdown($event, partFilter)"
-    >
-      <mat-option *ngFor="let option of partFilter.options" [value]="option">
-        {{ option }}
-      </mat-option>
-    </mat-select>
-    <button
-      *ngIf="partFilter.defaultValue !== defaultValue"
-      mat-button
-      matSuffix
-      class="legosort-clear"
-      (click)="onClear($event, partFilter)"
-    >
-      X
-    </button>
-  </mat-form-field>
-  <mat-form-field appearance="fill">
-    <mat-label>Filter</mat-label>
-    <input
-      matInput
-      (keyup)="handleFilterInput($event)"
-      placeholder="Search columns"
-      #input
-    />
-  </mat-form-field>
-  <br />
+  <ng-container *ngIf="!boxView">
+    <mat-form-field appearance="fill" *ngFor="let partFilter of partFilters">
+      <mat-label>{{ partFilter.name }}</mat-label>
+      <mat-select
+        [(value)]="partFilter.defaultValue"
+        (selectionChange)="handleFilterDropdown($event, partFilter)"
+      >
+        <mat-option *ngFor="let option of partFilter.options" [value]="option">
+          {{ option }}
+        </mat-option>
+      </mat-select>
+      <button
+        *ngIf="partFilter.defaultValue !== defaultValue"
+        mat-button
+        matSuffix
+        class="legosort-clear"
+        (click)="onClear($event, partFilter)"
+      >
+        X
+      </button>
+    </mat-form-field>
+    <mat-form-field appearance="fill">
+      <mat-label>Filter</mat-label>
+      <input
+        matInput
+        (keyup)="handleFilterInput($event)"
+        placeholder="Search columns"
+        #input
+      />
+    </mat-form-field>
+    <br />
+  </ng-container>
 
-  <mat-table class="mat-elevation-z8" [dataSource]="dataSourceFilters">
-    <ng-container matColumnDef="image">
-      <mat-header-cell *matHeaderCellDef>Part</mat-header-cell>
-      <mat-cell class="lego-image-container" *matCellDef="let part">
+  <div *ngIf="!boxView; else forBoxView">
+    <mat-table class="mat-elevation-z8" [dataSource]="dataSourceFilters">
+      <ng-container matColumnDef="image">
+        <mat-header-cell *matHeaderCellDef>Part</mat-header-cell>
+        <mat-cell class="lego-image-container" *matCellDef="let part">
+          <img
+            mat-card-image
+            class="legosort-image"
+            src="assets/parts/{{ part.image }}"
+            alt="{{ part.partnumber }}"
+            onerror="this.onerror=null;this.src='assets/no-image-icon.png';"
+            loading="lazy"
+          />
+          &nbsp;
+          <a (click)="openPartDetailDialog(part)">{{ part.partnumber }}</a>
+        </mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="category">
+        <mat-header-cell *matHeaderCellDef>Category</mat-header-cell>
+        <mat-cell *matCellDef="let part">{{ part.category }}</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="name">
+        <mat-header-cell *matHeaderCellDef>Description</mat-header-cell>
+        <mat-cell class="description-cell" *matCellDef="let part">{{
+          part.name
+        }}</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="isSubPart">
+        <mat-header-cell *matHeaderCellDef>sub part</mat-header-cell>
+        <mat-cell *matCellDef="let part">{{ part.isSubPart }}</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="dimensions">
+        <mat-header-cell *matHeaderCellDef>dimensions</mat-header-cell>
+        <mat-cell *matCellDef="let part">{{ part.dimensions }}</mat-cell>
+      </ng-container>
+
+      <ng-container matColumnDef="box">
+        <mat-header-cell *matHeaderCellDef>in Box</mat-header-cell>
+        <mat-cell *matCellDef="let part">{{ part.box }}</mat-cell>
+      </ng-container>
+
+      <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
+
+      <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
+    </mat-table>
+  </div>
+
+  <ng-template #forBoxView="">
+    <div *ngFor="let box of boxWithParts">
+      <h2>{{ box.box }}</h2>
+      <span *ngFor="let part of box.parts">
         <img
           mat-card-image
           class="legosort-image"
@@ -45,39 +103,9 @@
           alt="{{ part.partnumber }}"
           onerror="this.onerror=null;this.src='assets/no-image-icon.png';"
           loading="lazy"
-        /> &nbsp; <a (click)="openPartDetailDialog(part)">{{ part.partnumber }}</a>
-      </mat-cell>
-    </ng-container>
-
-    <ng-container matColumnDef="category">
-      <mat-header-cell *matHeaderCellDef>Category</mat-header-cell>
-      <mat-cell *matCellDef="let part">{{ part.category }}</mat-cell>
-    </ng-container>
-
-    <ng-container matColumnDef="name">
-      <mat-header-cell *matHeaderCellDef>Description</mat-header-cell>
-      <mat-cell class="description-cell" *matCellDef="let part">{{
-        part.name
-      }}</mat-cell>
-    </ng-container>
-
-    <ng-container matColumnDef="isSubPart">
-      <mat-header-cell *matHeaderCellDef>sub part</mat-header-cell>
-      <mat-cell *matCellDef="let part">{{ part.isSubPart }}</mat-cell>
-    </ng-container>
-
-    <ng-container matColumnDef="dimensions">
-      <mat-header-cell *matHeaderCellDef>dimensions</mat-header-cell>
-      <mat-cell *matCellDef="let part">{{ part.dimensions }}</mat-cell>
-    </ng-container>
-
-    <ng-container matColumnDef="box">
-      <mat-header-cell *matHeaderCellDef>in Box</mat-header-cell>
-      <mat-cell *matCellDef="let part">{{ part.box }}</mat-cell>
-    </ng-container>
-
-    <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
-
-    <mat-row *matRowDef="let row; columns: displayedColumns"></mat-row>
-  </mat-table>
+          (click)="openPartDetailDialog(part)"
+        />
+      </span>
+    </div>
+  </ng-template>
 </div>
