@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
-import { BoxWithParts, PartFilter } from '../model/types';
+import { PartFilter } from '../model/types';
 import { MatSelectChange } from '@angular/material/select';
 
 import { Part, PartInBox } from '../model/types';
@@ -9,110 +9,25 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { PartDetailComponent } from '../part-detail/part-detail.component';
-import { createFilter } from './part-finder.helpers';
-import { ActivatedRoute } from '@angular/router';
 
 @Component({
-  selector: 'legosort-part-finder',
-  templateUrl: './part-finder.component.html',
-  styleUrls: ['./part-finder.component.scss'],
+  selector: 'legosort-box-content',
+  templateUrl: './box-content.component.html',
+  styleUrls: ['./box-content.component.scss'],
 })
-export class PartFinderComponent implements OnInit, OnDestroy {
+export class BoxContentComponent implements OnInit, OnDestroy {
   defaultValue = 'All';
   filterDictionary = new Map<string, string>();
 
-  dim: string[] = [
-    this.defaultValue,
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '7',
-    '8',
-    '9',
-    '10',
-    '10+',
-  ];
-  heights: string[] = [
-    this.defaultValue,
-    '0',
-    '0-1',
-    '1',
-    '1-2',
-    '2',
-    '3',
-    '3-6',
-    '6+',
-  ];
-  categories: string[] = [
-    this.defaultValue,
-    'Antenna',
-    'Arch',
-    'Ball',
-    'Bar',
-    'Baseplate',
-    'Bracket',
-    'Brick',
-    'Chain',
-    'Cockpit',
-    'Cone',
-    'Container',
-    'Cylinder',
-    'Dish',
-    'Door',
-    'Fence',
-    'Flag',
-    'Hinge',
-    'Hook',
-    'Hose',
-    'Ladder',
-    'Magnet',
-    'Panel',
-    'Plant',
-    'Plate',
-    'Propeller',
-    'Ring',
-    'Rock',
-    'Roof',
-    'Slope',
-    'Stairs',
-    'Support',
-    'Tail',
-    'Tap',
-    'Technic',
-    'Tile',
-    'Train',
-    'Vehicle',
-    'Wedge',
-    'Wheel',
-    'Window',
-    'Windscreen',
-    'Wing',
-  ];
   partFilters: PartFilter[] = [];
 
   public dataSourceFilters!: MatTableDataSource<Part>;
   public displayedColumns: string[] = [
     'image',
-    'category',
-    'dimensions',
-    'name',
     'box',
   ];
 
-  public boxView = false; // Will be set in html template by slider
-  public seeSpecificBox: string;
-  public boxWithParts: BoxWithParts[] = [];
-
-  constructor(
-    private routeParams: ActivatedRoute,
-    private dataService: DataService,
-    private dialog: MatDialog
-  ) {
-    this.seeSpecificBox = routeParams.snapshot.params['box'];
-  }
+  constructor(private dataService: DataService, private dialog: MatDialog) {}
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
@@ -133,61 +48,20 @@ export class PartFinderComponent implements OnInit, OnDestroy {
   }
 
   private fillTable(allPartInBox: PartInBox[]): void {
-    const AllPartsWithBoxNumber = this.getAllPartsWithBoxNumber(allPartInBox);
-    this.dataSourceFilters = new MatTableDataSource(AllPartsWithBoxNumber);
-    // Magic happens. The helper contains a big function that decides if a part is a match or not.
-    this.dataSourceFilters.filterPredicate = createFilter;
+    this.dataSourceFilters = new MatTableDataSource(
+      this.getAllPartInBoxes(allPartInBox)
+    );
 
-    this.boxWithParts = this.getBoxesWithParts(AllPartsWithBoxNumber);
-    if (this.seeSpecificBox) {
-      this.boxView = true;
-      this.boxWithParts = this.boxWithParts.filter((box) => box.box === this.seeSpecificBox);
-    }
+    // this.dataSourceFilters.filterPredicate = createFilter;
   }
 
   private addOrUpdateFilters(allPartInBox: PartInBox[]): void {
-    if (!this.partfiltersHasFilter(this.partFilters, 'category')) {
-      this.partFilters.push({
-        name: 'category',
-        options: this.categories,
-        defaultValue: this.defaultValue,
-      });
-    }
-    if (!this.partfiltersHasFilter(this.partFilters, 'dim1')) {
-      this.partFilters.push({
-        name: 'dim1',
-        options: this.dim,
-        defaultValue: this.defaultValue,
-      });
-    }
-    if (!this.partfiltersHasFilter(this.partFilters, 'dim2')) {
-      this.partFilters.push({
-        name: 'dim2',
-        options: this.dim,
-        defaultValue: this.defaultValue,
-      });
-    }
-    if (!this.partfiltersHasFilter(this.partFilters, 'height')) {
-      this.partFilters.push({
-        name: 'height',
-        options: this.heights,
-        defaultValue: this.defaultValue,
-      });
-    }
-
     if (!this.partfiltersHasFilter(this.partFilters, 'box')) {
       this.partFilters.push({
         name: 'box',
         options: this.getListOfBoxes(allPartInBox),
         defaultValue: this.defaultValue,
       });
-    } else {
-      // Something special with box: The values depend on the incoming data,
-      // so filter needs to be updated. But the chosen defaultvalue needs to be retained
-      const boxFilter = this.partFilters.find(
-        (part) => part.name === 'box'
-      ) as PartFilter;
-      boxFilter['options'] = this.getListOfBoxes(allPartInBox);
     }
   }
 
@@ -198,7 +72,7 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     return partFilters.some((part) => part.name === name);
   }
 
-  getAllPartsWithBoxNumber(allPartInBox: PartInBox[]): Part[] {
+  getAllPartInBoxes(allPartInBox: PartInBox[]): Part[] {
     const availableParts = this.dataService.getAllParts();
     const allPartsWithBoxNumber = availableParts.map((availablePart) => {
       const partInBox = allPartInBox.find(
@@ -222,29 +96,6 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     const boxA = partA.box || 'zzz';
     const boxB = partB.box || 'zzz';
     return boxA.localeCompare(boxB, 'en', { numeric: true });
-  }
-
-  getBoxesWithParts(allPartsWithBoxNumber: Part[]): BoxWithParts[] {
-        // We need to normalize: An array of boxes,
-    //  and then an array of items in that box
-    const allBoxesWithParts: BoxWithParts[] = [];
-    allPartsWithBoxNumber
-      .sort(this.partSort)
-      .forEach((part) => {
-        // Only the parts assigned to actual boxes
-        if (part.box) {
-
-          let specificBox = allBoxesWithParts.find(boxWithPart => boxWithPart.box === part.box);
-
-          if (!specificBox) {
-            specificBox = { box: part.box, parts: []} as BoxWithParts;
-            allBoxesWithParts.push(specificBox);
-          }
-          specificBox.parts.push(part);
-        }
-    })
-
-    return allBoxesWithParts;
   }
 
   getListOfBoxes(allPartInBox: PartInBox[]): string[] {

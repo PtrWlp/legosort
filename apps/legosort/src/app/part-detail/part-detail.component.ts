@@ -1,8 +1,7 @@
 import { Component, OnInit, Inject } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { Part } from '../model/part';
-import { PartInBox } from '../model/part-in-box';
+import { Part, PartInBox } from '../model/types';
 import { DataService } from '../services/data.service';
 
 @Component({

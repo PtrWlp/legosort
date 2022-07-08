@@ -12,12 +12,14 @@ import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 import { environment } from '../environments/environment';
 import { PartDetailComponent } from './part-detail/part-detail.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { BoxContentComponent } from './box-content/box-content.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     PartFinderComponent,
-    PartDetailComponent
+    PartDetailComponent,
+    BoxContentComponent,
   ],
   imports: [
     BrowserModule,
