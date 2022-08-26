@@ -28,3 +28,8 @@ export interface BoxWithParts {
   box: string,
   parts: Part[],
 }
+
+export interface LoginData {
+  email: string;
+  password: string;
+}

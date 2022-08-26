@@ -1,16 +1,16 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { MatTableDataSource } from '@angular/material/table';
-import { BoxWithParts, PartFilter } from '../model/types';
+import { BoxWithParts, PartFilter } from '../interfaces/legosort.interface';
 import { MatSelectChange } from '@angular/material/select';
 
-import { Part, PartInBox } from '../model/types';
+import { Part, PartInBox } from '../interfaces/legosort.interface';
 import { DataService } from '../services/data.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { MatDialog } from '@angular/material/dialog';
 import { PartDetailComponent } from '../part-detail/part-detail.component';
 import { createFilter } from './part-finder.helpers';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 @Component({
   selector: 'legosort-part-finder',
@@ -106,25 +106,29 @@ export class PartFinderComponent implements OnInit, OnDestroy {
   public seeSpecificBox: string;
   public boxWithParts: BoxWithParts[] = [];
 
+  private userName;
+
   constructor(
     private routeParams: ActivatedRoute,
     private dataService: DataService,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private router: Router,
   ) {
     this.seeSpecificBox = routeParams.snapshot.params['box'];
+    this.userName = router.getCurrentNavigation()?.extras?.state?.['userName'];
   }
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
     this.dataService
-      .getAllPartInBox()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((allPartInBox: PartInBox[]) => {
-        this.fillTable(allPartInBox);
-        this.addOrUpdateFilters(allPartInBox);
-        // Fire the filters initially, so initially no parts will be displayed
-        this.applyPartFilter('box', this.defaultValue);
-      });
+    .getAllPartInBox(this.userName)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe((allPartInBox: PartInBox[]) => {
+      this.fillTable(allPartInBox);
+      this.addOrUpdateFilters(allPartInBox);
+      // Fire the filters initially, so initially no parts will be displayed
+      this.applyPartFilter('box', this.defaultValue);
+    });
   }
 
   ngOnDestroy() {
@@ -141,7 +145,9 @@ export class PartFinderComponent implements OnInit, OnDestroy {
     this.boxWithParts = this.getBoxesWithParts(AllPartsWithBoxNumber);
     if (this.seeSpecificBox) {
       this.boxView = true;
-      this.boxWithParts = this.boxWithParts.filter((box) => box.box === this.seeSpecificBox);
+      this.boxWithParts = this.boxWithParts.filter(
+        (box) => box.box === this.seeSpecificBox
+      );
     }
   }
 
@@ -225,24 +231,23 @@ export class PartFinderComponent implements OnInit, OnDestroy {
   }
 
   getBoxesWithParts(allPartsWithBoxNumber: Part[]): BoxWithParts[] {
-        // We need to normalize: An array of boxes,
+    // We need to normalize: An array of boxes,
     //  and then an array of items in that box
     const allBoxesWithParts: BoxWithParts[] = [];
-    allPartsWithBoxNumber
-      .sort(this.partSort)
-      .forEach((part) => {
-        // Only the parts assigned to actual boxes
-        if (part.box) {
+    allPartsWithBoxNumber.sort(this.partSort).forEach((part) => {
+      // Only the parts assigned to actual boxes
+      if (part.box) {
+        let specificBox = allBoxesWithParts.find(
+          (boxWithPart) => boxWithPart.box === part.box
+        );
 
-          let specificBox = allBoxesWithParts.find(boxWithPart => boxWithPart.box === part.box);
-
-          if (!specificBox) {
-            specificBox = { box: part.box, parts: []} as BoxWithParts;
-            allBoxesWithParts.push(specificBox);
-          }
-          specificBox.parts.push(part);
+        if (!specificBox) {
+          specificBox = { box: part.box, parts: [] } as BoxWithParts;
+          allBoxesWithParts.push(specificBox);
         }
-    })
+        specificBox.parts.push(part);
+      }
+    });
 
     return allBoxesWithParts;
   }

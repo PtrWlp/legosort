@@ -4,7 +4,7 @@ import {
   doc, deleteDoc, updateDoc, setDoc
 } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
-import { Part, PartInBox } from '../model/types';
+import { Part, PartInBox } from '../interfaces/legosort.interface';
 import partsList from '../../../data/selectedParts.json';
 
 @Injectable({
@@ -14,28 +14,28 @@ export class DataService {
 
   constructor(private firestore: Firestore) { }
 
-  addPartInBox(partInBox: PartInBox) {
-    const dbRef = collection(this.firestore, 'partinbox');
+  addPartInBox(partInBox: PartInBox, userName: string) {
+    const dbRef = collection(this.firestore, userName ?? 'partinbox');
     return addDoc(dbRef, partInBox);
   }
 
-  updatePartInBox(partInBox: PartInBox) {
-    const dbRef = doc(this.firestore, `partinbox/${partInBox.id}`);
+  updatePartInBox(partInBox: PartInBox, userName: string) {
+    const dbRef = doc(this.firestore, `${userName ?? 'partinbox'}/${partInBox.id}`);
     return setDoc(dbRef, partInBox);
   }
 
-  deletePartInBox(partInBox: PartInBox) {
-    const dbRef = doc(this.firestore, `partinbox/${partInBox.id}`);
+  deletePartInBox(partInBox: PartInBox, userName: string) {
+    const dbRef = doc(this.firestore, `${userName ?? 'partinbox'}/${partInBox.id}`);
     return deleteDoc(dbRef);
   }
 
-  modifyBox(partInBox: PartInBox, box: string) {
-    const dbRef = doc(this.firestore, `partinbox/${partInBox.id}`);
+  modifyBox(partInBox: PartInBox, box: string, userName: string) {
+    const dbRef = doc(this.firestore, `${userName ?? 'partinbox'}/${partInBox.id}`);
     return updateDoc(dbRef, { box });
   }
 
-  getAllPartInBox(): Observable<PartInBox[]> {
-    const dataRef = collection(this.firestore, 'partinbox');
+  getAllPartInBox(userName: string): Observable<PartInBox[]> {
+    const dataRef = collection(this.firestore, userName ?? 'partinbox');
     return collectionData(dataRef, { idField: 'id' }) as Observable<PartInBox[]>;
   }
 

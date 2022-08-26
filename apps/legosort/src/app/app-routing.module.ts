@@ -1,12 +1,35 @@
-import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { AppComponent } from './app.component';
+import {
+  canActivate,
+  redirectLoggedInTo,
+  redirectUnauthorizedTo,
+} from '@angular/fire/auth-guard';
+
+import { NgModule } from '@angular/core';
+
+const redirectUnauthorizedToLogin = () => redirectUnauthorizedTo(['']);
+const redirectLoggedInToHome = () => redirectLoggedInTo(['partfinder']);
 
 const routes: Routes = [
-  {path: 'legosort', redirectTo: 'legosort/', pathMatch: 'full'},
-  {path: 'legosort/:box', component: AppComponent },
-  {path: '', redirectTo: '/', pathMatch: 'full'},
-  {path: ':box', component: AppComponent },
+  {
+    path: '',
+    loadChildren: () =>
+      import('../auth/auth.module').then((m) => m.AuthModule),
+    ...canActivate(redirectLoggedInToHome),
+  },
+  {
+    path: 'partfinder',
+    loadChildren: () =>
+      import('./part-finder/part-finder.module').then(
+        (m) => m.PartFinderModule
+      ),
+    ...canActivate(redirectUnauthorizedToLogin),
+  },
+  {
+    path: '**',
+    redirectTo: '',
+    pathMatch: 'full',
+  },
 ];
 
 @NgModule({

@@ -1,4 +1,4 @@
-import { Part } from '../model/types';
+import { Part } from '../interfaces/legosort.interface';
 
 export function createFilter(part: Part, filters: string): boolean {
   // We return a function for the MatTableDataSource to call for each item in the source
